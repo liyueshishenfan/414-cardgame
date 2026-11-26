@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>414 · 传代</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 登录 -->
+<div id="login" class="screen">
+  <h1>414</h1>
+  <p class="subtitle">传 代</p>
+  <div class="login-box">
+    <label>房间号<input id="inRoom" value="main" maxlength="20"></label>
+    <label>昵称<input id="inName" placeholder="牌桌上大家看到的名字" maxlength="12"></label>
+    <label>真名<input id="inReal" placeholder="点头像才看得见，别人不知道你是谁" maxlength="12"></label>
+    <button id="btnJoin">进入房间</button>
+  </div>
+  <p class="tip">四人齐了自动开始 · 手机电脑都能玩</p>
+</div>
+
+<!-- 游戏 -->
+<div id="game" class="screen" hidden>
+  <header id="topbar">
+    <div class="info">
+      <span id="roundInfo">—</span>
+      <span id="levelInfo">—</span>
+    </div>
+    <div class="top-actions">
+      <button id="btnSay">说</button>
+      <button id="btnRules">规则</button>
+      <button id="btnLog">记录</button>
+    </div>
+  </header>
+
+  <div class="table">
+    <div class="seat seat-top" id="seat2"></div>
+    <div class="seat seat-left" id="seat1"></div>
+    <div class="seat seat-right" id="seat3"></div>
+    <div id="profileCard" class="profile-card" hidden>
+  <div class="pc-name" id="pcName"></div>
+  <div class="pc-real" id="pcReal"></div>
+  <div class="pc-actions">
+    <button id="pcLike">👍 点赞</button>
+    <button id="pcEgg">🥚 扔鸡蛋</button>
+  </div>
+</div>
+
+<div id="roundBanner" class="round-banner" hidden></div>
+
+    <div class="center">
+      <div id="lastPlay" class="last-play"></div>
+      <div id="centerMsg" class="center-msg"></div>
+    </div>
+  </div>
+
+  <div class="myinfo">
+    <span id="myTeam" class="team-badge">—</span>
+    <span id="myName">—</span>
+    <span id="myTag"></span>
+    <button id="btnExit" class="exit-btn">退出</button>
+  </div>
+
+  <div id="turnTip" class="turn-tip" hidden>轮到你出牌</div>
+
+  <div id="hand" class="hand"></div>
+
+  <div class="actions">
+    <button id="btnSort" class="ghost">整理</button>
+    <button id="btnCha" class="cha" hidden>差</button>
+    <button id="btnPass" class="secondary">不出</button>
+    <button id="btnPlay" class="primary">出牌</button>
+    <button id="btnNext" class="primary" hidden>下一局</button>
+  </div>
+</div>
+
+<!-- 立棍声明 -->
+<div id="declare" class="declare" hidden>
+  <div class="declare-card">
+    <div class="declare-title">要不要立棍？</div>
+    <div class="declare-sub">一打二 · 赢了升 4 级，输了对方升 4 级</div>
+    <div id="declareTimer" class="declare-timer">60</div>
+    <div class="declare-btns">
+      <button id="btnNoStick" class="secondary">不立</button>
+      <button id="btnStick" class="primary">立棍</button>
+    </div>
+    <div id="declareStatus" class="declare-status"></div>
+  </div>
+</div>
+
+<!-- 快捷语 -->
+<div id="chatPanel" class="chat-panel" hidden>
+  <div class="chat-card">
+    <div class="chat-title">说点什么</div>
+    <div class="chat-grid" id="chatGrid"></div>
+    <button id="btnChatClose" class="wind-close">关闭</button>
+  </div>
+</div>
+
+<!-- 组队 -->
+<div id="teamPanel" class="wind-panel" hidden>
+  <div class="wind-card">
+    <div class="wind-title">组 队</div>
+    <div class="wind-sub" id="teamSub">选一个你想搭档的人</div>
+    <div id="teamList" class="wind-list"></div>
+    <button id="btnTeamSkip" class="wind-close">直接开始（默认对家一队）</button>
+  </div>
+</div>
+
+<!-- 给风 -->
+<div id="windPanel" class="wind-panel" hidden>
+  <div class="wind-card">
+    <div class="wind-title" id="windTitle">给 风</div>
+    <div class="wind-sub" id="windSub"></div>
+    <div class="wind-target" id="windTarget"></div>
+    <div class="wind-list" id="windList"></div>
+    <div class="wind-timer" id="windTimer"></div>
+
+    <div class="wind-actions" id="windActions">
+      <button id="btnWindPass" class="secondary">不管</button>
+      <button id="btnWindCha" class="cha" hidden>差</button>
+      <button id="btnWindPlay" class="primary">管</button>
+    </div>
+
+    <div class="wind-choose" id="windChoose" hidden>
+      <div class="wind-choose-tip">你们俩都管住了，谁出？</div>
+      <div class="wind-choose-btns">
+        <button id="btnChooseMe" class="primary">我来出</button>
+        <button id="btnChooseNot" class="secondary">我不来</button>
+      </div>
+    </div>
+
+    <button id="btnWindClose" class="wind-close" hidden>知道了</button>
+  </div>
+</div>
+
+<!-- 配牌选择 -->
+<div id="picker" class="picker" hidden>
+  <div class="picker-card">
+    <div class="picker-title">这张王当什么？</div>
+    <div class="picker-grid" id="pickerGrid"></div>
+    <button id="pickerCancel" class="secondary">取消</button>
+  </div>
+</div>
+
+<!-- 记录面板 -->
+<div id="logPanel" class="log-panel" hidden>
+  <div class="log-head">
+    <span>对局记录</span>
+    <button id="btnLogClose">关闭</button>
+  </div>
+  <div id="logList" class="log-list"></div>
+</div>
+
+<!-- 规则 -->
+<div id="rulesPanel" class="log-panel rules-panel" hidden>
+  <div class="log-head">
+    <span>414 · 传代 规则</span>
+    <button id="btnRulesClose">关闭</button>
+  </div>
+
+  <div class="rules-body">
+
+    <div class="rule-hero">
+      四个人，两支队，你和对面是一家。<br>
+      谁的牌先出完谁赢，赢的队升级。<br>
+      先升到 <b>A</b> 并赢下 A 那一把的队伍，赢整场。
+    </div>
+
+    <h3>牌的大小</h3>
+    <p class="rank-line">3 &lt; 4 &lt; 5 &lt; 6 &lt; 7 &lt; 8 &lt; 9 &lt; 10 &lt; J &lt; Q &lt; K &lt; A &lt; 2 &lt; <b>本局等级牌</b></p>
+    <p>本局打几，那个点数就是最大的牌。打 3 的时候，3 比 2 还大。</p>
+
+    <h3>组队</h3>
+    <ul>
+      <li>四个人进房间后，先选队友：点你想搭档的人。</li>
+      <li><b>互相选中</b>就成队；没配上或直接跳过，就按<b>默认对家</b>分。</li>
+      <li>组队完成后系统会<b>自动换座位</b>，把队友摆到你对面。</li>
+      <li>所以出牌顺序永远是：<b>你 → 对手 → 队友 → 对手</b>，不会乱。</li>
+    </ul>
+
+    <h3>怎么开</h3>
+    <ul>
+      <li>庄家先发牌，一人一张，顺时针。庄和庄下家各 <b>14 张</b>，另两人 13 张。</li>
+      <li>第一局：拿到<b>红桃 2</b> 的人先出牌，这一局打<b>红桃 3</b> 那个人那一队的场。</li>
+      <li>以后：上一局第一个出完的人坐庄，庄先出牌，打庄那一队的场。</li>
+    </ul>
+
+    <h3>怎么出</h3>
+    <ul>
+      <li><b>单张、对子要"紧挨着"管</b>：人家出 3，你只能出 4，出 5 不行。</li>
+      <li>例外：<b>2 和等级牌</b>可以跳着管，不看挨不挨着。</li>
+      <li>顺子：长度一样，起点大 1（345 只能用 456 管）。</li>
+      <li>炸弹：不管顺不顺，直接压。</li>
+      <li>实在压不上就点"不出"。</li>
+    </ul>
+
+    <h3>谁比谁大</h3>
+    <p class="rank-line small">
+      单张 = 对子 = 顺子 &lt; 三张炸弹 &lt; 两张等级假牌 &lt; 两张等级真牌 &lt;
+      连对 &lt; 四张炸弹 &lt; 三张等级假牌 &lt; 三张等级真牌 &lt; 五张炸弹 &lt; <b>四张等级牌</b>
+    </p>
+    <p>"假牌"就是里面掺了王。等级牌凑的对子、三张，比同数量普通牌都大。</p>
+
+    <h3>王怎么用</h3>
+    <ul>
+      <li>大小王不能单出，必须搭着别的牌一起出。</li>
+      <li>想当几就当几，凑对子、凑炸弹、凑顺子都行。</li>
+      <li><b>打出去就定死了</b>，不能再改。</li>
+      <li>王不能用来"差"。</li>
+    </ul>
+
+    <h3>差</h3>
+    <ul>
+      <li>人家出单张 4，你手里正好有<b>两张天然的 4</b>，就能喊"差"，把对 4 打出去。</li>
+      <li>差不管顺序，直接插队。</li>
+      <li>差出去的牌<b>没人能管</b>——场上直接清空，<b>你接着出</b>，不用等别人过。</li>
+      <li><b>12 秒</b>内有效，过了就没了。</li>
+      <li>如果这中间已经有人抢先出了牌，他那手会被<b>退回去</b>，而且所有人都看见他出了什么。</li>
+      <li>等级牌凑的对子不能差——那是炸弹，不是对子。</li>
+    </ul>
+
+    <h3>给风</h3>
+    <ul>
+      <li>有一个人<b>先出完了牌</b>，剩下三个人同时决定"管不管"。</li>
+      <li>三个人都做完选择，才一起亮出来——谁管了、出了什么牌，全部看得见。</li>
+      <li>队友管住 → 队友接住，正常往下打。</li>
+      <li>没人管 → 队友可以<b>随便出</b>，不用管刚出的是什么。</li>
+      <li>对手管住 → 对手抢走出牌权。两个对手都管住了，由他们自己商量谁出。</li>
+      <li>对手也可以用<b>差</b>来抢，差的优先级最高。</li>
+      <li>15 秒内没选，自动算"不管"。</li>
+    </ul>
+
+    <h3>立棍</h3>
+    <ul>
+      <li>每局开始有 <b>60 秒</b>，觉得牌好可以点"立棍"，一个人打两个。</li>
+      <li>先点的人立刻公开，别人看得见。</li>
+      <li>赢了升 <b>4 级</b>，输了让对方升 4 级。</li>
+      <li>两边都立 = 单挑，后立的那个人先出牌。</li>
+      <li>立棍之后，你队友这局的牌作废，不参与。</li>
+    </ul>
+
+    <h3>升级</h3>
+    <ul>
+      <li>你第一、队友第二出完 → 升 <b>2 级</b></li>
+      <li>你第一、队友第三 → 升 <b>1 级</b></li>
+      <li>你第一、队友第四 → <b>不升</b></li>
+      <li>下一局打"第一个出完那个人"那一队的场。</li>
+    </ul>
+
+    <h3>三个特殊段位</h3>
+    <ul>
+      <li><b>逢 3、J、A 必打</b>：升级不能跳过它们。10 升两级也是停在 J。</li>
+      <li><b>3 那一局</b>：在别人的场赢了也不算升级，得自己坐庄赢才行。</li>
+      <li><b>A 那一局</b>：必须你和队友包揽前两名才算赢；否则降到 J。J 那局再输，退回 3。</li>
+    </ul>
+
+    <h3>界面怎么用</h3>
+    <ul>
+      <li><b>点头像</b>：弹出名片，上面有他的<b>真名</b>，还能给他👍点赞或🥚扔鸡蛋。</li>
+      <li><b>右上角「说」</b>：发快捷语，说话的人头上冒气泡，全场都看得见。</li>
+      <li><b>右上角「规则」</b>：随时查，从顶部滑下来，不挡手牌，边打边看。</li>
+      <li><b>右上角「记录」</b>：这一局谁出了什么、谁喊了差，全在里面。</li>
+      <li><b>左下角「退出」</b>：离开房间。</li>
+      <li><b>拖动手牌</b>：可以自己调顺序；点「整理」恢复默认排序。</li>
+    </ul>
+
+    <h3>牌桌上的提示</h3>
+    <ul>
+      <li><b>轮到你</b>：手牌上方亮黄条 + 手机震一下。</li>
+      <li><b>剩 3 张以内</b>：头像泛金光，告诉全场你快跑完了。</li>
+      <li><b>出完最后一张</b>：头像爆红光。</li>
+      <li><b>队友接住风</b>：一道绿色气流从出完的人身上刮到队友头上，飘着叶子。</li>
+      <li><b>风被对手抢走</b>：对手座位闪红光。</li>
+      <li><b>名次</b>：出完的人座位下方显示金色「第 N 名」。</li>
+      <li><b>30 秒不出牌</b>：系统自动帮你过，整局不会卡死。</li>
+    </ul>
+
+    <h3>掉线了怎么办</h3>
+    <ul>
+      <li>刷新页面就能回到桌上，手牌全在。</li>
+      <li>就算换了浏览器、清了缓存，<b>用同一个昵称进</b>，能顶回原来的座位。</li>
+    </ul>
+
+    <h3>常见疑问</h3>
+    <div class="qa">
+      <p><b>Q：为什么我出 5 管不上 3？</b><br>
+      A：单张必须紧挨着，3 只能被 4 管。只有 2 和等级牌可以跳着管。</p>
+
+      <p><b>Q：两张王能当一对 2 吗？</b><br>
+      A：能。王可以当任意点数，两张王就是任意点数的对子，甚至能当一对等级牌。</p>
+
+      <p><b>Q：打 3 的时候，345 这个顺子还能出吗？</b><br>
+      A：能。顺子里的 3 就当普通小牌用，只有单独出 3 才是全场最大。</p>
+
+      <p><b>Q：出错了能收回来吗？</b><br>
+      A：不能。牌一落桌就定死，配牌也一样。</p>
+
+      <p><b>Q：我明明有对 4，为什么"差"不亮？</b><br>
+      A：三种可能：超过 12 秒了；你的 4 里有一张是王变的（要天然两张）；这局打的正好是 4，那对 4 算炸弹不算对子。</p>
+
+      <p><b>Q：队友先出完了，我还能差吗？</b><br>
+      A：能。差看的是"牌"，不是人，12 秒内都可以。</p>
+
+      <p><b>Q：为什么升级卡在 J 上不动？</b><br>
+      A：逢 J 必打。从 10 升两级本来该到 Q，规则要求必须停在 J 打一把。</p>
+
+      <p><b>Q：我掉线了怎么办？</b><br>
+      A：刷新页面，手牌和牌局都还在，直接回到桌上。</p>
+
+      <p><b>Q：为什么别人能管我的牌，我却管不上他的？</b><br>
+      A：单张和对子只能"紧挨着"往上管。人家出 7，你出 8 行，出 9 就不行——除非你出的是 2 或者等级牌。</p>
+
+      <p><b>Q：庄家为什么比我多一张牌？</b><br>
+      A：54 张牌四个人分，除不尽。从庄开始发，庄和庄下家各多一张。</p>
+
+      <p><b>Q：给风的时候我能直接过吗？</b><br>
+      A：能，点"不管"就行。管不了、或者想留牌，都可以不管。</p>
+
+      <p><b>Q：给风时我亮着牌等半天，别人能看到我出了什么吗？</b><br>
+      A：看不到。三个人都选完之后才一起揭晓，之前只显示"已选择"。</p>
+
+      <p><b>Q：立棍的时候还有给风吗？</b><br>
+      A：没有。一打二只剩三个人，人不够，给风不触发，直接往下打。</p>
+    </div>
+
+    <p class="rule-foot">规则以你们现场约定为准，这里只做速查。</p>
+  </div>
+</div>
+
+<div id="offline" class="offline" hidden>
+  <div class="offline-card">
+    <div class="offline-title">连接已断开</div>
+    <p>可能是服务器关了，或者外网链接过期了。</p>
+    <p class="offline-hint">如果是外网链接，每次重启都会变，要问房主要新的。</p>
+    <button id="btnReload">刷新页面</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

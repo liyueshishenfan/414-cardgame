@@ -1,0 +1,19 @@
+{
+  "name": "414-cardgame",
+  "version": "1.0.0",
+  "description": "414 传代 —— 四人两队的升级版掼蛋",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.18.1"
+  }
+}
