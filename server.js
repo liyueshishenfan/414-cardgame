@@ -109,7 +109,7 @@ setInterval(() => {
   const now = Date.now();
   for (const room of rooms.values()) {
     const stale = room.players.filter(
-      p => !p.connected && p.disconnectedAt && now - p.disconnectedAt > 60000
+      p => !p.connected && p.disconnectedAt && now - p.disconnectedAt > 45000
     );
     if (!stale.length) continue;
 
@@ -204,7 +204,7 @@ wss.on('connection', (ws) => {
           } else {
             // 3. 座位满了，先把掉线超过 20 秒的请走
             if (room.players.length >= 4) {
-              const stale = room.players.filter(x => !x.connected && x.disconnectedAt && now - x.disconnectedAt > 20000);
+              const stale = room.players.filter(x => !x.connected && x.disconnectedAt && now - x.disconnectedAt > 15000);
               for (const x of stale) {
                 room.kickPlayer(x.id);
                 conns.delete(x.id);
@@ -382,7 +382,7 @@ wss.on('connection', (ws) => {
         room.removePlayer(playerId);
         room.addLog(`${p.name} 离开了`);
       } else {
-        room.addLog(`${p.name} 断线了，等他回来（60 秒）`);
+        room.addLog(`${p.name} 断线了，等他回来（15 秒内重连不丢座位）`);
       }
       room.seq++;
     }
