@@ -693,3 +693,17 @@ html, body {
   55%  { transform: scale(1.1); box-shadow: 0 0 22px 8px rgba(239,68,68,0.6); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0); }
 }
+
+.btn-exit { color: #fca5a5 !important; border-color: rgba(220,38,38,0.5) !important; }
+.btn-exit:active { background: rgba(220,38,38,0.2) !important; }
+
+.leave-card {
+  background: #123d29; border: 1px solid #2a6b4a; border-radius: 14px;
+  padding: 22px 20px 16px; width: 100%; max-width: 320px; text-align: center;
+}
+.leave-title { font-size: 16px; font-weight: 700; color: #fecaca; margin-bottom: 8px; }
+.leave-sub { font-size: 12.5px; color: #86a893; line-height: 1.6; margin-bottom: 18px; }
+.leave-row { display: flex; gap: 10px; }
+.leave-row button { flex: 1; padding: 12px 0; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; }
+#leaveNo { background: #1e5c3e; color: #d1fae5; }
+#leaveYes { background: #dc2626; color: #fff; }
