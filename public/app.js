@@ -288,8 +288,6 @@ function renderCore() {
     $('myTag').textContent = tag;
   }
 
-  renderPlayed();
-
   // 场上牌
   const lp = $('lastPlay');
   lp.innerHTML = '';
@@ -298,13 +296,21 @@ function renderCore() {
   if (state.lastPlay) {
     const who = state.players.find(p => p.seat === state.lastPlay.seat);
     const isCha = !!state.lastPlay.isCha;
+
+    // 箭头指向出牌的人
+    const rel = relativeSeat(state.lastPlay.seat);
+    const arrow = rel === 0 ? '↓' : rel === 1 ? '←' : rel === 2 ? '↑' : '→';
+    const dirClass = rel === 0 ? 'to-self' : rel === 1 ? 'to-left' : rel === 2 ? 'to-top' : 'to-right';
+
     const label = document.createElement('div');
     label.className = 'center-msg' + (isCha ? ' cha-msg' : '');
-    label.textContent = isCha
-      ? `${who ? who.name : '?'} 差 · 谁都不能管`
-      : `${who ? who.name : '?'} 出`;
+    label.innerHTML = `<span class='arrow ${dirClass}'>${arrow}</span>${who ? escapeHtml(who.name) : '?'} ${isCha ? '差 · 谁都不能管' : '出'}`;
     lp.appendChild(label);
-    // 牌不放中央了，各人出的牌摆在自己面前
+
+    const row = document.createElement('div');
+    row.className = 'mini-row';
+    for (const c of state.lastPlay.cards) row.appendChild(makeCard(c, true));
+    lp.appendChild(row);
   } else if (state.phase === 'PLAYING' && state.turn === state.mySeat) {
     $('centerMsg').textContent = '你先出牌';
   } else if (state.phase === 'WAITING') {
@@ -1034,20 +1040,65 @@ function playWindFx(fx) {
   setTimeout(() => svg.remove(), 1200);
 }
 
+function seatEle(seat) {
+  const rel = relativeSeat(seat);
+  if (rel === 0) return $('myName') ? $('myName').parentElement : null;
+  return $(rel === 2 ? 'seat2' : rel === 1 ? 'seat1' : 'seat3');
+}
+
 function showReact(r) {
   if (!r || !state) return;
-  const rel = relativeSeat(r.to);
-  const el = rel === 0 ? $('myName').parentElement
-    : $(rel === 2 ? 'seat2' : rel === 1 ? 'seat1' : 'seat3');
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const span = document.createElement('div');
-  span.className = 'react-pop';
-  span.textContent = r.type === 'egg' ? '🥚' : '👍';
-  span.style.left = (rect.left + rect.width / 2) + 'px';
-  span.style.top = (rect.top + 6) + 'px';
-  document.body.appendChild(span);
-  setTimeout(() => span.remove(), 1400);
+  const target = seatEle(r.to);
+  if (!target) return;
+
+  if (r.type === 'like') {
+    const rect = target.getBoundingClientRect();
+    const span = document.createElement('div');
+    span.className = 'react-pop';
+    span.textContent = '👍';
+    span.style.left = (rect.left + rect.width / 2) + 'px';
+    span.style.top = (rect.top + 6) + 'px';
+    document.body.appendChild(span);
+    setTimeout(() => span.remove(), 1400);
+    return;
+  }
+
+  // 扔鸡蛋：从扔的人飞出去，砸中目标后破裂
+  const from = seatEle(r.from) || target;
+  const a = from.getBoundingClientRect();
+  const b = target.getBoundingClientRect();
+  const x1 = a.left + a.width / 2, y1 = a.top + a.height / 2;
+  const x2 = b.left + b.width / 2, y2 = b.top + b.height / 2;
+
+  const egg = document.createElement('div');
+  egg.className = 'egg-fly';
+  egg.textContent = '🥚';
+  egg.style.left = x1 + 'px';
+  egg.style.top = y1 + 'px';
+  egg.style.setProperty('--dx', (x2 - x1) + 'px');
+  egg.style.setProperty('--dy', (y2 - y1) + 'px');
+  document.body.appendChild(egg);
+
+  setTimeout(() => {
+    egg.remove();
+    splatAt(x2, y2);
+    target.classList.add('egg-hit');
+    setTimeout(() => target.classList.remove('egg-hit'), 700);
+  }, 640);
+}
+
+function splatAt(x, y) {
+  const s = document.createElement('div');
+  s.className = 'egg-splat';
+  s.style.left = x + 'px';
+  s.style.top = y + 'px';
+  for (let i = 0; i < 6; i++) {
+    const d = document.createElement('i');
+    d.style.setProperty('--a', (i * 60) + 'deg');
+    s.appendChild(d);
+  }
+  document.body.appendChild(s);
+  setTimeout(() => s.remove(), 900);
 }
 
 /* ---------------- 退出房间 ---------------- */
