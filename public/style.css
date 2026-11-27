@@ -536,9 +536,9 @@ html, body {
 /* 开局大字：打几 · 谁的场 */
 .round-banner {
   position: absolute;
-  left: 50%; top: 44%;
+  left: 50%; top: 57%;
   transform: translate(-50%, -50%);
-  font-size: 31px;
+  font-size: 27px;
   font-weight: 900;
   letter-spacing: 3px;
   color: #0a0a0a;
@@ -707,3 +707,21 @@ html, body {
 .leave-row button { flex: 1; padding: 12px 0; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; }
 #leaveNo { background: #1e5c3e; color: #d1fae5; }
 #leaveYes { background: #dc2626; color: #fff; }
+
+/* 每个人出的牌摆在各自面前 */
+.my-played {
+  display: flex; gap: 3px; justify-content: center;
+  height: 34px; margin-bottom: 2px;
+}
+.seat .played {
+  display: flex; gap: 2px; justify-content: center;
+  margin-top: 4px; min-height: 26px; flex-wrap: nowrap;
+}
+.played .mini, .my-played .mini { font-size: 10px; padding: 1px 4px; }
+.seat-left .played, .seat-right .played {
+  position: absolute; top: 50%; transform: translateY(-50%);
+}
+.seat-left .played { right: -76px; }
+.seat-right .played { left: -76px; }
+.seat-top .played { margin-top: 6px; }
+.played .mini.cha-mini { outline: 1px solid #dc2626; box-shadow: 0 0 6px rgba(220,38,38,0.6); }
