@@ -228,6 +228,32 @@ wss.on('connection', (ws) => {
         return;
       }
 
+      if (type === 'leave') {
+        const dr = room.dismissRoom(playerId);
+        if (!dr.ok) { send(ws, 'error', dr.msg); return; }
+        // 通知房间里所有人被请出去
+        for (const id of dr.ids) {
+          const sock = conns.get(id);
+          if (sock) {
+            try {
+              send(sock, 'dismissed', { by: dr.byName });
+              setTimeout(() => { try { sock.close(); } catch (e) {} }, 120);
+            } catch (e) {}
+            conns.delete(id);
+          }
+        }
+        rooms.delete(roomId);
+        console.log(`[房间解散] ${roomId} 被 ${dr.byName} 请走了所有人`);
+        return;
+      }
+
+      if (type === 'restart') {
+        const rr = room.restartGame(playerId);
+        if (!rr.ok) send(ws, 'error', rr.msg);
+        broadcast(room);
+        return;
+      }
+
       if (type === 'react') {
         const r2 = room.react(playerId, Number(data.targetSeat), data.kind);
         if (!r2.ok) send(ws, 'error', r2.msg);
