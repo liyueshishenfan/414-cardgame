@@ -185,11 +185,12 @@ function isLevelCard(card) {
 function makeCard(card, mini = false) {
   const el = document.createElement('div');
   const isRed = card.suit === 'H' || card.suit === 'D';
-  el.className = (mini ? 'mini' : 'card') + (isRed ? ' red' : '') + (card.joker ? ' joker' : '');
+  const isFake = !!card.joker && !!card.as;
+  el.className = (mini ? 'mini' : 'card') + (isRed ? ' red' : '') + (card.joker ? ' joker' : '') + (isFake ? ' fake' : '');
 
   if (mini) {
     if (card.joker) {
-      el.textContent = card.as ? `王→${VALUE_TO_LABEL[card.as]}` : card.rank;
+      el.textContent = card.as ? VALUE_TO_LABEL[card.as] : card.rank;
     } else {
       el.textContent = ({ S:'♠', H:'♥', D:'♦', C:'♣' }[card.suit]) + card.rank;
     }
@@ -197,21 +198,14 @@ function makeCard(card, mini = false) {
   }
 
   if (card.joker) {
-    el.innerHTML = `<span class="rank">${card.rank === '大王' ? '大王' : '小王'}</span>`;
+    const face = card.as ? VALUE_TO_LABEL[card.as] : (card.rank === '大王' ? '大王' : '小王');
+    el.innerHTML = `<span class="rank">${face}</span><span class="suit">变</span>`;
   } else {
     const suit = { S:'♠', H:'♥', D:'♦', C:'♣' }[card.suit];
-    // 点数在上、花色在下，和真实扑克牌一样，重叠时也能看清
     el.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${suit}</span>`;
   }
   if (isLevelCard(card)) el.style.border = '2px solid #fbbf24';
 
-  const as = asMap[card.id];
-  if (as) {
-    const badge = document.createElement('span');
-    badge.className = 'asbadge';
-    badge.textContent = '当' + VALUE_TO_LABEL[as];
-    el.appendChild(badge);
-  }
   return el;
 }
 
@@ -288,6 +282,14 @@ function renderCore() {
     $('myTag').textContent = tag;
   }
 
+  // 上牌（切牌）
+  const isCut = state.phase === 'CUT' && state.cutSeat === state.mySeat;
+  $('cutBox').hidden = !isCut;
+  if (state.phase === 'CUT' && state.cutSeat !== state.mySeat) {
+    const c = state.players.find(p => p.seat === state.cutSeat);
+    $('centerMsg').textContent = `${c ? c.name : '上家'} 正在上牌…`;
+  }
+
   // 队友立棍申请
   const sr = state.stickRequest;
   const needAnswer = sr && sr.mateSeat === state.mySeat;
@@ -299,20 +301,45 @@ function renderCore() {
   lp.innerHTML = '';
   $('centerMsg').textContent = '';
 
-  if (state.lastPlay) {
+  const th = state.trickHistory || [];
+  if (state.phase === 'PLAYING' && th.length) {
+    const wrap = document.createElement('div');
+    wrap.className = 'trick-row';
+    th.forEach((h, i) => {
+      const isLast = i === th.length - 1;
+      const grp = document.createElement('div');
+      grp.className = 'trick-grp' + (isLast ? ' latest' : '');
+      const who = state.players.find(p => p.seat === h.seat);
+
+      const nm = document.createElement('div');
+      nm.className = 'trick-name';
+      if (isLast) {
+        const rel = relativeSeat(h.seat);
+        const arrow = rel === 0 ? '↓' : rel === 1 ? '←' : rel === 2 ? '↑' : '→';
+        nm.innerHTML = `<span class='arrow'>${arrow}</span>${who ? escapeHtml(who.name) : '?'}`;
+      } else {
+        nm.textContent = who ? who.name.slice(0, 3) : '?';
+      }
+      grp.appendChild(nm);
+
+      const row = document.createElement('div');
+      row.className = 'mini-row';
+      for (const c of h.cards) row.appendChild(makeCard(c, true));
+      grp.appendChild(row);
+
+      if (h.isCha) grp.classList.add('is-cha');
+      wrap.appendChild(grp);
+    });
+    lp.appendChild(wrap);
+  } else if (state.lastPlay) {
     const who = state.players.find(p => p.seat === state.lastPlay.seat);
     const isCha = !!state.lastPlay.isCha;
-
-    // 箭头指向出牌的人
     const rel = relativeSeat(state.lastPlay.seat);
     const arrow = rel === 0 ? '↓' : rel === 1 ? '←' : rel === 2 ? '↑' : '→';
-    const dirClass = rel === 0 ? 'to-self' : rel === 1 ? 'to-left' : rel === 2 ? 'to-top' : 'to-right';
-
     const label = document.createElement('div');
     label.className = 'center-msg' + (isCha ? ' cha-msg' : '');
-    label.innerHTML = `<span class='arrow ${dirClass}'>${arrow}</span>${who ? escapeHtml(who.name) : '?'} ${isCha ? '差 · 谁都不能管' : '出'}`;
+    label.innerHTML = `<span class='arrow'>${arrow}</span>${who ? escapeHtml(who.name) : '?'} ${isCha ? '差 · 谁都不能管' : '出'}`;
     lp.appendChild(label);
-
     const row = document.createElement('div');
     row.className = 'mini-row';
     for (const c of state.lastPlay.cards) row.appendChild(makeCard(c, true));
@@ -1106,6 +1133,16 @@ function splatAt(x, y) {
   document.body.appendChild(s);
   setTimeout(() => s.remove(), 900);
 }
+
+/* ---------------- 上牌 ---------------- */
+$('cutRange').addEventListener('input', () => {
+  $('cutVal').textContent = '切在第 ' + $('cutRange').value + ' 张';
+});
+$('cutOk').addEventListener('click', () => {
+  $('cutBox').hidden = true;
+  const idx = Number($('cutRange').value) || 27;
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'cut', data: { index: idx } }));
+});
 
 /* ---------------- 立棍确认 ---------------- */
 $('stickYes').addEventListener('click', () => {
