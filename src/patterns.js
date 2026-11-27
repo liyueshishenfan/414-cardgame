@@ -13,7 +13,8 @@ const PATTERN = {
   LV2_REAL: 'LV2_REAL',       // 二张等级真牌
   LV3_FAKE: 'LV3_FAKE',       // 三张等级假牌
   LV3_REAL: 'LV3_REAL',       // 三张等级真牌
-  LV4: 'LV4',                 // 四张等级牌
+  LV4_FAKE: 'LV4_FAKE',       // 四张等级假牌（含王）
+  LV4: 'LV4',                 // 四张等级真牌
 };
 
 // 权重：数值越大越强
@@ -23,6 +24,7 @@ const WEIGHT = {
   LV2_FAKE: 2,
   LV2_REAL: 3,
   STRAIGHT_PAIR: 4,
+  LV4_FAKE: 4.5,
   BOMB4: 5,
   LV3_FAKE: 6,
   LV3_REAL: 7,
@@ -35,6 +37,7 @@ const PATTERN_NAME = {
   BOMB3: '三张炸弹', BOMB4: '四张炸弹', BOMB5: '五张炸弹',
   LV2_FAKE: '二张等级假牌', LV2_REAL: '二张等级真牌',
   LV3_FAKE: '三张等级假牌', LV3_REAL: '三张等级真牌',
+  LV4_FAKE: '四张等级假牌',
   LV4: '四张等级牌',
 };
 
@@ -87,7 +90,10 @@ function analyze(cards, level) {
     }
     if (n === 4) {
       if (isLevel) {
-        return { pattern: PATTERN.LV4, mainValue: LEVEL_VALUE, length: 4, isLevel: true };
+        return {
+          pattern: hasJoker ? PATTERN.LV4_FAKE : PATTERN.LV4,
+          mainValue: LEVEL_VALUE, length: 4, isLevel: true,
+        };
       }
       return { pattern: PATTERN.BOMB4, mainValue: cmpV, length: 4, isLevel: false };
     }
