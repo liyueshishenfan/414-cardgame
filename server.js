@@ -358,6 +358,14 @@ wss.on('connection', (ws) => {
         return;
       }
 
+      if (type === 'cut') {
+        const seat = room.getPlayer(playerId)?.seat;
+        const cr = room.doCut(seat, data.index);
+        if (!cr.ok) send(ws, 'error', cr.msg);
+        broadcast(room);
+        return;
+      }
+
       if (type === 'nextRound') {
         if (room.nextRound()) broadcast(room);
         return;
