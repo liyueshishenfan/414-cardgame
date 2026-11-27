@@ -94,6 +94,13 @@ class Room {
     }
   }
 
+  // 真删除，不管牌局有没有在打（用于长时间掉线的腾位）
+  kickPlayer(id) {
+    const before = this.players.length;
+    this.players = this.players.filter(x => x.id !== id);
+    return this.players.length < before;
+  }
+
   getPlayer(id) { return this.players.find(p => p.id === id); }
   getBySeat(seat) { return this.players.find(p => p.seat === seat); }
 
