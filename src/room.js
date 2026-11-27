@@ -236,6 +236,79 @@ class Room {
   }
 
   // ---------- 开局 ----------
+  // 遣散房间：任何人点一下，所有人都被请出房间
+  dismissRoom(playerId) {
+    const p = this.getPlayer(playerId);
+    if (!p) return { ok: false, msg: '玩家不存在' };
+
+    const byName = p.name;
+    const ids = this.players.map(x => x.id);
+
+    this.players = [];
+    this.phase = 'WAITING';
+    this.level = { 0: 3, 1: 3 };
+    this.roundNo = 0;
+    this.firstRound = true;
+    this.stickMode = null;
+    this.stickSeats = [];
+    this.finishOrder = [];
+    this.passed.clear();
+    this.lastPlay = null;
+    this.trickHistory = [];
+    this.lastReveal = null;
+    this.lastChat = null;
+    this.lastReact = null;
+    this.lastWindFx = null;
+    this.giveWind = null;
+    this.chooseState = null;
+    this.outSeats = new Set();
+    this.teamPick = { 0: -1, 1: -1, 2: -1, 3: -1 };
+    this.dealerSeat = 0;
+    this.seq++;
+
+    return { ok: true, ids, byName };
+  }
+
+  // 任何人都有权重开：全场清空，回到起点重新组队发牌
+  restartGame(playerId) {
+    const p = this.getPlayer(playerId);
+    if (!p) return { ok: false, msg: '玩家不存在' };
+    if (this.players.length < 4) return { ok: false, msg: '还没坐满四个人' };
+
+    for (const x of this.players) {
+      x.hand = [];
+      x.out = false;
+      x.ready = false;
+    }
+    this.level = { 0: 3, 1: 3 };
+    this.roundNo = 0;
+    this.firstRound = true;
+    this.stickMode = null;
+    this.stickSeats = [];
+    this.finishOrder = [];
+    this.passed.clear();
+    this.lastPlay = null;
+    this.trickHistory = [];
+    this.lastReveal = null;
+    this.lastReact = null;
+    this.lastWindFx = null;
+    this.giveWind = null;
+    this.chooseState = null;
+    this.teamMap = { 0: 0, 1: 1, 2: 0, 3: 1 };
+    this.teamPick = { 0: -1, 1: -1, 2: -1, 3: -1 };
+    this.dealerSeat = 0;
+    this.outSeats = new Set();
+    this.winnerTeam = -1;
+    this.seq++;
+
+    this.addLog(`${p.name} 重开了游戏，全部回到起点`);
+
+    this.phase = 'TEAM';
+    this.teamPick = { 0: -1, 1: -1, 2: -1, 3: -1 };
+    this.teamNames = ['A', 'B'];
+    return { ok: true, restarted: true, byName: p.name };
+  }
+
   startGame() {
     if (this.players.length !== 4) return false;
     this.level = { 0: 3, 1: 3 };
