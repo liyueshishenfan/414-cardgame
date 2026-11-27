@@ -190,14 +190,16 @@ wss.on('connection', (ws) => {
           p.disconnectedAt = null;
           playerId = p.id;
         } else {
-          // 2. 换了浏览器 / 清了缓存：找同名且掉线的人顶回来
-          const sameOffline = room.players.find(x => x.name === myName && !x.connected);
-          if (sameOffline) {
-            sameOffline.connected = true;
-            sameOffline.disconnectedAt = null;
-            playerId = sameOffline.id;
-            p = sameOffline;
-            room.addLog(`${sameOffline.name} 重新连回来了`);
+          // 2. 换了浏览器 / 清了缓存：同名就把旧连接挤掉，坐回原位
+          const sameName = room.players.find(x => x.name === myName);
+          if (sameName) {
+            const oldWs = conns.get(sameName.id);
+            if (oldWs && oldWs !== ws) { try { oldWs.close(); } catch (e) {} }
+            sameName.connected = true;
+            sameName.disconnectedAt = null;
+            playerId = sameName.id;
+            p = sameName;
+            room.addLog(`${sameName.name} 重新连回来了`);
             room.seq++;
           } else {
             // 3. 座位满了，先把掉线超过 20 秒的请走
