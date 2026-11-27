@@ -104,6 +104,36 @@ setInterval(() => {
   }
 }, 2000);
 
+// 掉线超过 60 秒还不回来：腾出座位，别把房间堵死
+setInterval(() => {
+  const now = Date.now();
+  for (const room of rooms.values()) {
+    const stale = room.players.filter(
+      p => !p.connected && p.disconnectedAt && now - p.disconnectedAt > 60000
+    );
+    if (!stale.length) continue;
+
+    for (const p of stale) {
+      room.kickPlayer(p.id);
+      console.log(`[清理] 房间 ${room.id} 移除掉线玩家 ${p.name}`);
+    }
+    if (room.players.length < 4 && room.phase !== 'WAITING') {
+      room.phase = 'WAITING';
+      for (const x of room.players) { x.hand = []; x.out = false; }
+      room.lastPlay = null;
+      room.trickHistory = [];
+      room.giveWind = null;
+      room.chooseState = null;
+      room.finishOrder = [];
+      room.stickMode = null;
+      room.stickSeats = [];
+      room.addLog('有人掉线太久，这局作废，等人齐了重新开');
+    }
+    room.seq++;
+    broadcast(room);
+  }
+}, 15000);
+
 // 没人连着超过 30 分钟的房间，清掉，防止越积越多
 setInterval(() => {
   const now = Date.now();
@@ -148,35 +178,58 @@ wss.on('connection', (ws) => {
       if (type === 'join') {
         roomId = String(data.roomId || 'main').slice(0, 20);
         const room = getRoom(roomId);
+        const myName = String(data.name || '').slice(0, 12) || '玩家';
+        const myReal = String(data.realName || myName).slice(0, 12);
+        const now = Date.now();
 
-        // 断线重连：沿用原 playerId
-        const oldId = data.playerId;
-        let p = oldId ? room.getPlayer(oldId) : null;
+        let p = data.playerId ? room.getPlayer(data.playerId) : null;
 
         if (p) {
+          // 1. 老身份直接重连回来
           p.connected = true;
+          p.disconnectedAt = null;
           playerId = p.id;
         } else {
-          const myName = String(data.name || '').slice(0, 12) || '玩家';
+          // 2. 换了浏览器 / 清了缓存：找同名且掉线的人顶回来
+          const sameOffline = room.players.find(x => x.name === myName && !x.connected);
+          if (sameOffline) {
+            sameOffline.connected = true;
+            sameOffline.disconnectedAt = null;
+            playerId = sameOffline.id;
+            p = sameOffline;
+            room.addLog(`${sameOffline.name} 重新连回来了`);
+            room.seq++;
+          } else {
+            // 3. 座位满了，先把掉线超过 20 秒的请走
+            if (room.players.length >= 4) {
+              const stale = room.players.filter(x => !x.connected && x.disconnectedAt && now - x.disconnectedAt > 20000);
+              for (const x of stale) {
+                room.kickPlayer(x.id);
+                conns.delete(x.id);
+                console.log(`[腾位] 房间 ${room.id} 请走掉线玩家 ${x.name}`);
+              }
+            }
 
-          if (room.phase !== 'WAITING') {
-            // 游戏已开局但 playerId 丢了（换浏览器 / 清了缓存）：
-            // 如果有个同名的人掉线着，就让他顶回来
-            const offline = room.players.find(x => x.name === myName && !x.connected);
-            if (offline) {
-              offline.connected = true;
-              playerId = offline.id;
-              p = offline;
-              room.addLog(`${offline.name} 重新连回来了`);
-              room.seq++;
-            } else {
-              send(ws, 'error', '游戏已开始，进不去了。等这局打完再进，或者让房主重开。');
+            // 4. 有空位就坐下
+            if (room.players.length < 4) {
+              if (room.phase !== 'WAITING' && room.phase !== 'TEAM') {
+                room.phase = 'WAITING';
+                for (const x of room.players) { x.hand = []; x.out = false; }
+                room.lastPlay = null;
+                room.trickHistory = [];
+                room.giveWind = null;
+                room.chooseState = null;
+                room.finishOrder = [];
+                room.addLog('人不够了，这局作废');
+              }
+              playerId = randomId();
+              p = room.addPlayer(playerId, myName, myReal);
+            }
+
+            if (!p) {
+              send(ws, 'error', `房间满了（4/4），等里面的人退一个再进`);
               return;
             }
-          } else {
-            playerId = randomId();
-            p = room.addPlayer(playerId, myName, String(data.realName || myName).slice(0, 12));
-            if (!p) { send(ws, 'error', '房间已满'); return; }
           }
         }
 
@@ -317,7 +370,20 @@ wss.on('connection', (ws) => {
     if (!playerId) return;
     const room = rooms.get(roomId);
     if (!room) return;
-    room.removePlayer(playerId);
+
+    const p = room.getPlayer(playerId);
+    if (p) {
+      p.connected = false;
+      p.disconnectedAt = Date.now();
+      // 还没开局：直接让位，别人能马上进来
+      if (room.phase === 'WAITING') {
+        room.removePlayer(playerId);
+        room.addLog(`${p.name} 离开了`);
+      } else {
+        room.addLog(`${p.name} 断线了，等他回来（60 秒）`);
+      }
+      room.seq++;
+    }
     conns.delete(playerId);
     broadcast(room);
   });
