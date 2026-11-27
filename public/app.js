@@ -40,6 +40,15 @@ function connect() {
   ws.onmessage = (e) => {
     let msg;
     try { msg = JSON.parse(e.data); } catch { return; }
+    if (msg.type === 'dismissed') {
+      try { ws.onclose = null; ws.close(); } catch (e) {}
+      $('game').hidden = true;
+      $('login').hidden = false;
+      const who = (msg.data && msg.data.by) || '有人';
+      toast(`${who} 把房间解散了，全部退出`, 3800);
+      return;
+    }
+
     if (msg.type === 'joined') {
       myId = msg.data.playerId;
       try {
@@ -1015,6 +1024,14 @@ function showReact(r) {
   document.body.appendChild(span);
   setTimeout(() => span.remove(), 1400);
 }
+
+/* ---------------- 退出房间 ---------------- */
+$('btnExit').addEventListener('click', () => { $('leaveBox').hidden = false; });
+$('leaveNo').addEventListener('click', () => { $('leaveBox').hidden = true; });
+$('leaveYes').addEventListener('click', () => {
+  $('leaveBox').hidden = true;
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'leave', data: {} }));
+});
 
 /* ---------------- 登录 ---------------- */
 $('btnJoin').addEventListener('click', () => {
