@@ -344,6 +344,13 @@ wss.on('connection', (ws) => {
         return;
       }
 
+      if (type === 'answerStick') {
+        const ar = room.answerStick(playerId, !!data.agree);
+        if (!ar.ok) send(ws, 'error', ar.msg);
+        broadcast(room);
+        return;
+      }
+
       if (type === 'declare') {
         const r = room.declareStick(playerId, !!data.want);
         if (!r.ok) send(ws, 'error', r.msg);
