@@ -317,6 +317,15 @@ class Room {
   }
 
   // 逢 3、J、A 必打：必须打完所有名次，立棍也不能提前结算
+  // 这局该不该结束了：三人出完，或者同一队两人都出完（胜负已定）
+  canSettle() {
+    const activeCount = 4 - this.outSeats.size;
+    if (this.finishOrder.length >= activeCount - 1) return true;
+    const t0 = this.finishOrder.filter(s => this.teamOf(s) === 0).length;
+    const t1 = this.finishOrder.filter(s => this.teamOf(s) === 1).length;
+    return t0 >= 2 || t1 >= 2;
+  }
+
   isMustFinish() {
     return this.currentLevel === 3 || this.currentLevel === 11 || this.currentLevel === LEVEL_MAX;
   }
@@ -388,28 +397,64 @@ class Room {
     if (this.phase !== 'DECLARE') return { ok: false, msg: '现在不是立棍时间' };
     if (this.declare[p.seat] !== 'PENDING') return { ok: false, msg: '你已经选过了' };
 
-    if (want) {
-      const mate = this.mateOf(p.seat);
-      if (this.declare[mate] === 'STICK') {
-        this.declare[p.seat] = 'PASS';
-        return { ok: false, msg: '队友已经立棍，你不能重复立' };
-      }
-      this.declare[p.seat] = 'STICK';
-      this.stickSeats.push(p.seat);
-      this.stickName = p.name;
-      this.addLog(`${p.name} 立棍了！`);
-    } else {
+    if (!want) {
       this.declare[p.seat] = 'PASS';
+      if (this.stickRequest && this.stickRequest.mateSeat === p.seat) {
+        this.stickRequest = null;
+      }
+      this.checkAllChosen();
+      return { ok: true };
     }
 
+    // 想立棍：必须队友点头
+    const mateSeat = this.mateOf(p.seat);
+    const mate = this.getBySeat(mateSeat);
+    if (!mate) return { ok: false, msg: '队友不在，立不了棍' };
+    if (this.stickRequest) return { ok: false, msg: '已经有一个申请在等回复' };
+
+    this.stickRequest = { seat: p.seat, name: p.name, mateSeat, at: Date.now() };
+    this.addLog(`${p.name} 想立棍，等 ${mate.name} 点头`);
+    this.seq++;
+    return { ok: true, requested: true };
+  }
+
+  // 队友回应立棍申请
+  answerStick(playerId, agree) {
+    const p = this.getPlayer(playerId);
+    if (!p) return { ok: false, msg: '玩家不存在' };
+    if (this.phase !== 'DECLARE') return { ok: false, msg: '现在不是立棍时间' };
+
+    const req = this.stickRequest;
+    if (!req || req.mateSeat !== p.seat) return { ok: false, msg: '没有待处理的申请' };
+
+    if (agree) {
+      this.declare[req.seat] = 'STICK';
+      this.stickSeats.push(req.seat);
+      this.stickName = req.name;
+      this.declare[p.seat] = 'STICK_MATE';
+      this.addLog(`${p.name} 点头了，${req.name} 立棍！`);
+    } else {
+      this.declare[req.seat] = 'PASS';
+      this.declare[p.seat] = 'PASS';
+      this.addLog(`${p.name} 没同意，这把不立棍`);
+    }
+    this.stickRequest = null;
+    this.checkAllChosen();
+    this.seq++;
+    return { ok: true, agree };
+  }
+
+  checkAllChosen() {
+    if (this.phase !== 'DECLARE') return;
+    if (this.stickRequest) return;
     const allChosen = this.players.every(x => this.declare[x.seat] !== 'PENDING');
     if (allChosen) this.finishDeclare();
-    return { ok: true };
   }
 
   finishDeclare() {
     if (this.phase !== 'DECLARE') return;
     if (this.declareTimer) { clearTimeout(this.declareTimer); this.declareTimer = null; }
+    this.stickRequest = null;
 
     const stickers = this.stickSeats.slice();
 
@@ -512,8 +557,7 @@ class Room {
         return { ok: true, roundEnd: true };
       }
 
-      const activeCount = 4 - this.outSeats.size;
-      if (this.finishOrder.length >= activeCount - 1) {
+      if (this.canSettle()) {
         this.settleRound();
         return { ok: true, roundEnd: true };
       }
@@ -611,8 +655,7 @@ class Room {
     if (p.hand.length === 0) {
       this.finishOrder.push(p.seat);
       this.addLog(`${p.name} 出完了（第 ${this.finishOrder.length} 名）`);
-      const activeCount = 4 - this.outSeats.size;
-      if (this.finishOrder.length >= activeCount - 1) {
+      if (this.canSettle()) {
         this.settleRound();
         return { ok: true, roundEnd: true };
       }
@@ -672,8 +715,7 @@ class Room {
           this.settleRound();
           return true;
         }
-        const activeCount = 4 - this.outSeats.size;
-        if (this.finishOrder.length >= activeCount - 1) {
+        if (this.canSettle()) {
           this.settleRound();
           return true;
         }
@@ -879,8 +921,7 @@ class Room {
 
     if (p.hand.length === 0) {
       this.finishOrder.push(seat);
-      const activeCount = 4 - this.outSeats.size;
-      if (this.finishOrder.length >= activeCount - 1) {
+      if (this.canSettle()) {
         this.settleRound();
         return;
       }
@@ -914,8 +955,7 @@ class Room {
 
     if (p.hand.length === 0) {
       this.finishOrder.push(seat);
-      const activeCount = 4 - this.outSeats.size;
-      if (this.finishOrder.length >= activeCount - 1) {
+      if (this.canSettle()) {
         this.settleRound();
         return;
       }
@@ -1191,6 +1231,7 @@ class Room {
       lastChat: this.lastChat,
       lastReact: this.lastReact,
       lastWindFx: this.lastWindFx,
+      stickRequest: this.stickRequest ? { seat: this.stickRequest.seat, name: this.stickRequest.name, mateSeat: this.stickRequest.mateSeat } : null,
       trickHistory: this.trickHistory.slice(-10).map(h => ({ seat: h.seat, cards: h.cards, isCha: !!h.isCha })),
       players: this.players.map(p => ({
         seat: p.seat,
