@@ -21,6 +21,7 @@ class Room {
     this.players = [];          // {id, name, seat, hand, connected, ready}
     this.phase = 'WAITING';     // WAITING | PLAYING | ROUND_END | GAME_OVER
     this.level = { 0: 3, 1: 3 }; // 各队等级
+    this.stage = { 0: null, 1: null };   // 特殊阶段
     this.fieldTeam = 0;         // 当前打哪个队的场
     this.dealerSeat = 0;
     this.turn = 0;
@@ -254,6 +255,7 @@ class Room {
     this.players = [];
     this.phase = 'WAITING';
     this.level = { 0: 3, 1: 3 };
+    this.stage = { 0: null, 1: null };   // 特殊阶段
     this.roundNo = 0;
     this.firstRound = true;
     this.stickMode = null;
@@ -288,6 +290,7 @@ class Room {
       x.ready = false;
     }
     this.level = { 0: 3, 1: 3 };
+    this.stage = { 0: null, 1: null };   // 特殊阶段
     this.roundNo = 0;
     this.firstRound = true;
     this.stickMode = null;
@@ -333,6 +336,7 @@ class Room {
   startGame() {
     if (this.players.length !== 4) return false;
     this.level = { 0: 3, 1: 3 };
+    this.stage = { 0: null, 1: null };   // 特殊阶段
     this.roundNo = 0;
     this.firstRound = true;
     this.phase = 'PLAYING';
@@ -342,8 +346,12 @@ class Room {
 
   startRound() {
     this.roundNo++;
-    // 发牌
-    const deck = shuffle(createDeck());
+    // 发牌（先按上家切的位置重组牌堆）
+    let deck = shuffle(createDeck());
+    if (this.cutIndex > 0) {
+      deck = deck.slice(this.cutIndex).concat(deck.slice(0, this.cutIndex));
+    }
+    this.cutIndex = 0;
     for (const p of this.players) p.hand = [];
     for (let i = 0; i < 54; i++) {
       const seat = (this.dealerSeat + i) % 4;
@@ -1066,72 +1074,101 @@ class Room {
 
     const first = this.finishOrder[0];
     const winTeam = this.teamOf(first);
+    const loseTeam = 1 - winTeam;
     const mate = this.mateOf(first);
     const mateRank = this.finishOrder.indexOf(mate) + 1; // 2/3/4
 
-    let up = mateRank === 2 ? 2 : mateRank === 3 ? 1 : 0;
+    const bigWin = mateRank === 2;
+    const smallWin = mateRank === 3;
 
     const before = this.level[winTeam];
     let after = before;
+    let winStage = this.stage[winTeam];
+
+    let loseAfter = this.level[loseTeam];
+    let loseStage = this.stage[loseTeam];
+    const loseBefore = loseAfter;
+
     let gameOver = false;
     let note = '';
 
-    // 特殊等级段处理（第一版：基础实现，细节待补充）
-    if (before === LEVEL_MAX) {
-      // A 局：必须包揽第 1、2 名才算赢，否则降为 J
-      if (mateRank === 2) {
+    // ---------- 赢方 ----------
+    if (winStage === 'DEAD') {
+      note = '已钉死在 3，升不上去了';
+    } else if (winStage === 'A') {
+      if (bigWin) {
         gameOver = true;
-        note = '打到 A 并包揽前两名，游戏结束';
+        note = 'A 局大赢，赢下整场';
       } else {
-        after = 11; // 降到 J
-        up = 0;
-        note = 'A 局未包揽前两名，降为 J';
+        note = 'A 局没拿到大赢，留在 A';
       }
-    } else if (before === 11) {
-      // J 局：包揽第 1、2 名回 A，否则退回 3
-      if (mateRank === 2) {
-        after = LEVEL_MAX; // 回 A
-        note = 'J 局包揽前两名，回到 A';
+    } else if (winStage === 'J_FALLBACK') {
+      if (bigWin) {
+        after = 14; winStage = 'A';
+        note = '回退局大赢，回到 A';
       } else {
-        after = 3; // 输回 3
-        up = 0;
-        note = 'J 局输了，回到 3';
+        note = '没拿到大赢，留在 J';
       }
-    } else if (before === 3) {
-      // 3 局：在别人场不能升级
-      if (winTeam !== this.fieldTeam) {
-        up = 0;
-        note = '3 局在对方场获胜，不升级';
+    } else if (winStage === 'THREE_SPECIAL') {
+      if (bigWin) {
+        after = 11; winStage = 'J_FALLBACK';
+        note = '特殊 3 大赢，回到 J';
+      } else {
+        note = '没拿到大赢，留在 3';
       }
-      after = Math.min(before + up, LEVEL_MAX);
     } else {
-      // 普通：逢 J 必打（不能跳过 J）
+      // 正常场：3~10、Q、K
+      const up = bigWin ? 2 : smallWin ? 1 : 0;
       let target = before + up;
-      if (before < 11 && target > 11) target = 11;
-      if (target > LEVEL_MAX) target = LEVEL_MAX;
+      if (before < 11 && target > 11) target = 11; // 不能跳过 J
+      if (target > 14) target = 14;                // 封顶 A
       after = target;
+      if (after === 14) winStage = 'A';
+      note = up > 0 ? `升 ${up} 级` : '平局，不升级';
+    }
+
+    // ---------- 输方 ----------
+    if (loseAfter === 14) {
+      loseAfter = 11; loseStage = 'J_FALLBACK';
+      note += '；对方从 A 退到 J';
+    } else if (loseAfter === 11) {
+      loseAfter = 3; loseStage = 'THREE_SPECIAL';
+      note += '；对方从 J 退到 3';
+    } else if (loseStage === 'THREE_SPECIAL') {
+      loseStage = 'DEAD';
+      note += '；对方钉死在 3';
     }
 
     this.level[winTeam] = after;
+    this.stage[winTeam] = winStage;
+    this.level[loseTeam] = loseAfter;
+    this.stage[loseTeam] = loseStage;
 
     this.lastResult = {
       winTeam,
+      loseTeam,
       firstSeat: first,
       finishOrder: this.finishOrder.slice(),
-      up,
+      up: after - before,
       before,
       after,
+      loseBefore,
+      loseAfter,
+      bigWin,
+      smallWin,
+      mateRank,
       gameOver,
       note,
     };
 
-    this.addLog(`本局结束：${winTeam === 0 ? 'A' : 'B'} 队获胜，升 ${up} 级（${levelName(before)} → ${levelName(after)}）`);
+    const rankName = bigWin ? '大赢' : smallWin ? '小赢' : '平局';
+    this.addLog(`本局结束：${winTeam === 0 ? 'A' : 'B'} 队${rankName}，${note}`);
 
     if (gameOver) {
       this.phase = 'GAME_OVER';
     } else {
       this.phase = 'ROUND_END';
-      this.dealerSeat = first; // 下一局庄
+      this.dealerSeat = first; // 谁第一个出完，下一局打谁的场
     }
   }
 
@@ -1179,9 +1216,33 @@ class Room {
 
   nextRound() {
     if (this.phase !== 'ROUND_END') return false;
+    // 进入上牌（切牌）阶段：庄的上家来切
+    this.phase = 'CUT';
+    this.cutSeat = (this.dealerSeat + 3) % 4;
+    this.cutIndex = 0;
+    const cutter = this.getBySeat(this.cutSeat);
+    this.addLog(`${cutter ? cutter.name : '上家'} 上牌（20 秒不切就随机切）`);
+    if (this.cutTimer) clearTimeout(this.cutTimer);
+    this.cutTimer = setTimeout(() => {
+      if (this.phase === 'CUT') {
+        this.doCut(this.cutSeat, 1 + Math.floor(Math.random() * 52));
+      }
+    }, 20000);
+    this.seq++;
+    return true;
+  }
+
+  // 上家切牌
+  doCut(seat, index) {
+    if (this.phase !== 'CUT') return { ok: false, msg: '现在不是上牌时间' };
+    if (seat !== this.cutSeat) return { ok: false, msg: '这一把不是你上牌' };
+    if (this.cutTimer) { clearTimeout(this.cutTimer); this.cutTimer = null; }
+    this.cutIndex = Math.max(1, Math.min(53, Number(index) || 1));
+    const p = this.getBySeat(seat);
+    this.addLog(`${p ? p.name : '上家'} 上牌：切在第 ${this.cutIndex} 张`);
     this.phase = 'PLAYING';
     this.startRound();
-    return true;
+    return { ok: true };
   }
 
   // ---------- 日志 ----------
@@ -1231,6 +1292,7 @@ class Room {
       lastChat: this.lastChat,
       lastReact: this.lastReact,
       lastWindFx: this.lastWindFx,
+      cutSeat: this.phase === 'CUT' ? this.cutSeat : null,
       stickRequest: this.stickRequest ? { seat: this.stickRequest.seat, name: this.stickRequest.name, mateSeat: this.stickRequest.mateSeat } : null,
       trickHistory: this.trickHistory.slice(-10).map(h => ({ seat: h.seat, cards: h.cards, isCha: !!h.isCha })),
       players: this.players.map(p => ({
