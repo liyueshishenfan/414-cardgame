@@ -15,7 +15,6 @@ const PATTERN = {
   LV3_REAL: 'LV3_REAL',       // 三张等级真牌
   ROCKET_FAKE: 'ROCKET_FAKE', // 假 44A（含王变的 4）
   ROCKET_REAL: 'ROCKET_REAL', // 真 44A（两天然4 + 天然A）
-  LV4_FAKE: 'LV4_FAKE',       // 四张等级假牌（含王）
   LV4: 'LV4',                 // 四张等级真牌
 };
 
@@ -27,7 +26,6 @@ const WEIGHT = {
   LV2_REAL: 3,
   STRAIGHT_PAIR: 4,
   ROCKET_FAKE: 4.2,
-  LV4_FAKE: 4.5,
   BOMB4: 5,
   ROCKET_REAL: 5.5,
   LV3_FAKE: 6,
@@ -43,7 +41,6 @@ const PATTERN_NAME = {
   LV3_FAKE: '三张等级假牌', LV3_REAL: '三张等级真牌',
   ROCKET_FAKE: '假 44A',
   ROCKET_REAL: '真 44A',
-  LV4_FAKE: '四张等级假牌',
   LV4: '四张等级牌',
 };
 
@@ -114,10 +111,7 @@ function analyze(cards, level) {
     }
     if (n === 4) {
       if (isLevel) {
-        return {
-          pattern: hasJoker ? PATTERN.LV4_FAKE : PATTERN.LV4,
-          mainValue: LEVEL_VALUE, length: 4, isLevel: true,
-        };
+        return { pattern: PATTERN.LV4, mainValue: LEVEL_VALUE, length: 4, isLevel: true };
       }
       return { pattern: PATTERN.BOMB4, mainValue: cmpV, length: 4, isLevel: false };
     }
