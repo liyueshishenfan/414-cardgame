@@ -316,6 +316,11 @@ class Room {
     return { ok: true, restarted: true, byName: p.name };
   }
 
+  // 逢 3、J、A 必打：必须打完所有名次，立棍也不能提前结算
+  isMustFinish() {
+    return this.currentLevel === 3 || this.currentLevel === 11 || this.currentLevel === LEVEL_MAX;
+  }
+
   startGame() {
     if (this.players.length !== 4) return false;
     this.level = { 0: 3, 1: 3 };
@@ -495,8 +500,14 @@ class Room {
     if (p.hand.length === 0) {
       this.finishOrder.push(p.seat);
       this.addLog(`${p.name} 出完了（第 ${this.finishOrder.length} 名）`);
-      // 立棍局：立棍者第一个出完，这局立刻结束（他赢了）
+      // 立棍者第一个出完
       if (this.stickMode === 'SOLO' && p.seat === this.stickSeats[0]) {
+        if (this.isMustFinish()) {
+          // 必打局：立棍归立棍，但名次得排完，剩下两人继续争第三
+          this.addLog(`这是必打局（打 ${levelName(this.currentLevel)}），${p.name} 虽已立棍出完，剩下两位继续争第三`);
+          this.advanceTurn();
+          return { ok: true, continued: true };
+        }
         this.settleRound();
         return { ok: true, roundEnd: true };
       }
@@ -653,6 +664,11 @@ class Room {
         this.finishOrder.push(p.seat);
         this.addLog(`${p.name} 出完了（第 ${this.finishOrder.length} 名）`);
         if (this.stickMode === 'SOLO' && p.seat === this.stickSeats[0]) {
+          if (this.isMustFinish()) {
+            this.addLog(`必打局，${p.name} 立棍出完，剩下两人继续争第三`);
+            this.advanceTurn();
+            return true;
+          }
           this.settleRound();
           return true;
         }
