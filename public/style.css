@@ -536,9 +536,9 @@ html, body {
 /* 开局大字：打几 · 谁的场 */
 .round-banner {
   position: absolute;
-  left: 50%; top: 57%;
+  left: 50%; top: 68%;
   transform: translate(-50%, -50%);
-  font-size: 27px;
+  font-size: 24px;
   font-weight: 900;
   letter-spacing: 3px;
   color: #0a0a0a;
@@ -725,3 +725,99 @@ html, body {
 .seat-right .played { left: -76px; }
 .seat-top .played { margin-top: 6px; }
 .played .mini.cha-mini { outline: 1px solid #dc2626; box-shadow: 0 0 6px rgba(220,38,38,0.6); }
+
+/* 中央出牌：箭头指向出牌的人 */
+.center-msg .arrow {
+  display: inline-block;
+  margin-right: 5px;
+  font-weight: 900;
+  color: #fbbf24;
+  font-size: 15px;
+}
+.center-msg .arrow.to-top { transform: translateY(-1px); }
+.center-msg .arrow.to-self { color: #34d399; }
+
+/* 横屏：重排布局，别挤成一团 */
+@media (orientation: landscape) and (max-height: 560px) {
+  #topbar { padding: 3px 8px; }
+  #topbar .info { font-size: 10px; gap: 6px; }
+  .top-actions button { padding: 4px 8px; font-size: 11px; }
+
+  .seat { transform: scale(0.78); }
+  .seat-top { top: 2px; }
+  .seat-left { left: 2px; top: 46%; }
+  .seat-right { right: 2px; top: 46%; }
+
+  .center { top: 42%; }
+  .last-play .mini, .mini-row .mini { font-size: 11px; padding: 2px 5px; }
+
+  .hand {
+    height: 88px;
+    padding: 0 2px;
+    margin: 0;
+  }
+  .card {
+    width: 48px; height: 68px;
+    margin-right: -22px;
+    font-size: 12px;
+  }
+  .card .rank { font-size: 13px; }
+  .card .suit { font-size: 13px; }
+
+  .actions { padding: 4px 8px; gap: 6px; }
+  .actions button { padding: 7px 14px; font-size: 13px; }
+
+  .my-played { display: none; }
+  .seat .played { display: none; }
+}
+
+/* 扔鸡蛋：抛物线飞行 */
+.egg-fly {
+  position: fixed; z-index: 145;
+  font-size: 26px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: eggArc 0.64s cubic-bezier(0.35, 0.05, 0.7, 1) forwards;
+}
+@keyframes eggArc {
+  0%   { transform: translate(-50%, -50%) rotate(0deg) scale(0.9); opacity: 1; }
+  45%  { transform: translate(calc(-50% + var(--dx) * 0.5), calc(-50% + var(--dy) * 0.5 - 110px)) rotate(200deg) scale(1.15); }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(420deg) scale(1); opacity: 1; }
+}
+
+/* 砸中破裂 */
+.egg-splat {
+  position: fixed; z-index: 146;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.egg-splat i {
+  position: absolute; left: 0; top: 0;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #fcd34d;
+  box-shadow: 0 0 6px rgba(252, 211, 77, 0.85);
+  opacity: 0;
+  animation: splatOut 0.72s ease-out forwards;
+}
+.egg-splat i:nth-child(1) { --tx: -32px; --ty: -20px; }
+.egg-splat i:nth-child(2) { --tx: -14px; --ty: -30px; }
+.egg-splat i:nth-child(3) { --tx: 16px; --ty: -28px; }
+.egg-splat i:nth-child(4) { --tx: 32px; --ty: -8px; }
+.egg-splat i:nth-child(5) { --tx: 12px; --ty: 20px; }
+.egg-splat i:nth-child(6) { --tx: -18px; --ty: 16px; }
+@keyframes splatOut {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.4); }
+  65%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.15); }
+}
+
+/* 被砸的人抖一下 */
+.seat.egg-hit .avatar {
+  animation: eggShake 0.6s ease-out;
+}
+@keyframes eggShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px) rotate(-4deg); }
+  45% { transform: translateX(5px) rotate(4deg); }
+  70% { transform: translateX(-3px); }
+}
