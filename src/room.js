@@ -1175,6 +1175,7 @@ class Room {
       lastChat: this.lastChat,
       lastReact: this.lastReact,
       lastWindFx: this.lastWindFx,
+      trickHistory: this.trickHistory.slice(-10).map(h => ({ seat: h.seat, cards: h.cards, isCha: !!h.isCha })),
       players: this.players.map(p => ({
         seat: p.seat,
         name: p.name,
