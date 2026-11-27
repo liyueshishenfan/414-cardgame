@@ -821,3 +821,49 @@ html, body {
   45% { transform: translateX(5px) rotate(4deg); }
   70% { transform: translateX(-3px); }
 }
+
+/* 上牌（切牌） */
+#cutRange {
+  width: 100%; margin: 14px 0 10px;
+  accent-color: #22c55e;
+}
+.cut-val {
+  font-size: 13px; color: #86efac; margin-bottom: 14px;
+  font-weight: 600;
+}
+.cut-btn {
+  width: 100%; padding: 12px 0; border-radius: 10px;
+  border: none; background: #16a34a; color: #fff;
+  font-size: 14px; font-weight: 600;
+}
+
+/* 这一轮所有人出的牌 */
+.trick-row {
+  display: flex; gap: 12px; justify-content: center;
+  align-items: flex-end; flex-wrap: nowrap;
+}
+.trick-grp {
+  display: flex; flex-direction: column; align-items: center;
+  opacity: 0.5; transform: scale(0.82); transition: all 0.18s;
+}
+.trick-grp.latest {
+  opacity: 1; transform: scale(1);
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.55));
+}
+.trick-name {
+  font-size: 10px; color: #86efac; margin-bottom: 3px;
+  white-space: nowrap; font-weight: 600;
+}
+.trick-grp.latest .trick-name { color: #fbbf24; font-size: 11px; }
+.trick-grp.is-cha .mini { outline: 1px solid #dc2626; }
+
+/* 王变的牌（假牌） */
+.mini.fake {
+  border: 1px dashed #fbbf24;
+  background: rgba(251, 191, 36, 0.16);
+  color: #fde68a;
+}
+.card.fake {
+  border: 2px dashed #fbbf24;
+}
+.card.fake .suit { font-size: 9px; color: #fbbf24; }
