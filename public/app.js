@@ -288,6 +288,12 @@ function renderCore() {
     $('myTag').textContent = tag;
   }
 
+  // 队友立棍申请
+  const sr = state.stickRequest;
+  const needAnswer = sr && sr.mateSeat === state.mySeat;
+  $('stickBox').hidden = !needAnswer;
+  if (needAnswer) $('stickTitle').textContent = `${sr.name} 想立棍`;
+
   // 场上牌
   const lp = $('lastPlay');
   lp.innerHTML = '';
@@ -1100,6 +1106,16 @@ function splatAt(x, y) {
   document.body.appendChild(s);
   setTimeout(() => s.remove(), 900);
 }
+
+/* ---------------- 立棍确认 ---------------- */
+$('stickYes').addEventListener('click', () => {
+  $('stickBox').hidden = true;
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'answerStick', data: { agree: true } }));
+});
+$('stickNo').addEventListener('click', () => {
+  $('stickBox').hidden = true;
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'answerStick', data: { agree: false } }));
+});
 
 /* ---------------- 退出房间 ---------------- */
 $('btnExit').addEventListener('click', () => { $('leaveBox').hidden = false; });
