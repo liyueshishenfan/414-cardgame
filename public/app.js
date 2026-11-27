@@ -254,6 +254,7 @@ function renderCore() {
       <div class="count">${p.out ? '本局退出' : `剩 ${p.count} 张`}</div>
       ${isSticker ? '<div class="stick-badge">立棍</div>' : ''}
       ${finished ? `<div class="finish-rank">第${state.finishOrder.indexOf(p.seat) + 1}名</div>` : ''}
+      <div class="played" id="played${rel}"></div>
     `;
 
     const av = box.querySelector('.avatar');
@@ -287,6 +288,8 @@ function renderCore() {
     $('myTag').textContent = tag;
   }
 
+  renderPlayed();
+
   // 场上牌
   const lp = $('lastPlay');
   lp.innerHTML = '';
@@ -301,10 +304,7 @@ function renderCore() {
       ? `${who ? who.name : '?'} 差 · 谁都不能管`
       : `${who ? who.name : '?'} 出`;
     lp.appendChild(label);
-    const row = document.createElement('div');
-    row.className = 'mini-row';
-    for (const c of state.lastPlay.cards) row.appendChild(makeCard(c, true));
-    lp.appendChild(row);
+    // 牌不放中央了，各人出的牌摆在自己面前
   } else if (state.phase === 'PLAYING' && state.turn === state.mySeat) {
     $('centerMsg').textContent = '你先出牌';
   } else if (state.phase === 'WAITING') {
@@ -397,6 +397,31 @@ function renderCore() {
   renderDeclare();
   renderLog();
   checkChat();
+}
+
+
+function renderPlayed() {
+  ['played1', 'played2', 'played3', 'myPlayed'].forEach(id => {
+    const el = $(id);
+    if (el) el.innerHTML = '';
+  });
+  if (!state || !state.trickHistory) return;
+
+  const latest = {};
+  for (const h of state.trickHistory) latest[h.seat] = h;
+
+  for (const seatStr of Object.keys(latest)) {
+    const seat = Number(seatStr);
+    const h = latest[seat];
+    const rel = relativeSeat(seat);
+    const el = rel === 0 ? $('myPlayed') : $('played' + rel);
+    if (!el) continue;
+    for (const c of h.cards) {
+      const card = makeCard(c, true);
+      if (h.isCha) card.classList.add('cha-mini');
+      el.appendChild(card);
+    }
+  }
 }
 
 function renderHand() {
