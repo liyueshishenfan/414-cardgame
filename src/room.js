@@ -469,9 +469,11 @@ class Room {
     const play = analyze(cards, this.currentLevel);
     if (!play) return { ok: false, msg: '这不是合法牌型' };
 
-    // 管牌校验
-    if (this.lastPlay && !canBeat(play, this.lastPlay.play)) {
-      return { ok: false, msg: `管不上（当前是 ${PATTERN_NAME[this.lastPlay.play.pattern]}）` };
+    // 管牌校验：自己出的牌不用管；被差锁死的牌谁都不用管
+    if (this.lastPlay && this.lastPlay.seat !== p.seat && !this.lastPlay.locked) {
+      if (!canBeat(play, this.lastPlay.play)) {
+        return { ok: false, msg: `管不上（当前是 ${PATTERN_NAME[this.lastPlay.play.pattern]}）` };
+      }
     }
 
     // 执行出牌
@@ -621,7 +623,10 @@ class Room {
     const p = this.getBySeat(this.turn);
     if (!p || p.hand.length === 0) return false;
 
-    if (this.lastPlay) {
+    // 锁死的牌、自己出的牌，都算自由出
+    const mustFollow = this.lastPlay && this.lastPlay.seat !== p.seat && !this.lastPlay.locked;
+
+    if (mustFollow) {
       this.passed.add(p.seat);
       this.addLog(`${p.name} 超时，自动过牌`);
       this.seq++;
@@ -953,6 +958,14 @@ class Room {
     do { next = NEXT_SEAT(next); } while (!active.includes(next));
 
     if (!this.lastPlay) {
+      this.turn = next;
+      return;
+    }
+
+    // 差锁死的牌：不用谁去管，直接清场往下走
+    if (this.lastPlay.locked) {
+      this.lastPlay = null;
+      this.passed.clear();
       this.turn = next;
       return;
     }
