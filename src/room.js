@@ -38,6 +38,7 @@ class Room {
     this.declareEndsAt = 0;     // 声明截止时间戳
     this.stickMode = null;      // null | 'SOLO'(1打2) | 'DUEL'(1v1)
     this.stickSeats = [];       // 立棍者座位，按点击顺序
+    this.stickRequests = [];
     this.outSeats = new Set();  // 本局不参与的座位（立棍者的队友）
     this.declareTimer = null;
     this.stickName = '';        // 最近一次立棍公告
@@ -260,6 +261,7 @@ class Room {
     this.firstRound = true;
     this.stickMode = null;
     this.stickSeats = [];
+    this.stickRequests = [];   // 待队友确认的立棍申请
     this.finishOrder = [];
     this.passed.clear();
     this.lastPlay = null;
@@ -295,6 +297,7 @@ class Room {
     this.firstRound = true;
     this.stickMode = null;
     this.stickSeats = [];
+    this.stickRequests = [];   // 待队友确认的立棍申请
     this.finishOrder = [];
     this.passed.clear();
     this.lastPlay = null;
@@ -392,6 +395,7 @@ class Room {
     this.declareEndsAt = Date.now() + 60000;
     this.stickMode = null;
     this.stickSeats = [];
+    this.stickRequests = [];   // 待队友确认的立棍申请
     this.outSeats = new Set();
     this.stickName = '';
     this.phase = 'DECLARE';
@@ -407,20 +411,21 @@ class Room {
 
     if (!want) {
       this.declare[p.seat] = 'PASS';
-      if (this.stickRequest && this.stickRequest.mateSeat === p.seat) {
-        this.stickRequest = null;
-      }
+      // 自己队还没处理的申请作废
+      this.stickRequests = this.stickRequests.filter(r => r.seat !== p.seat && r.mateSeat !== p.seat);
       this.checkAllChosen();
       return { ok: true };
     }
 
-    // 想立棍：必须队友点头
     const mateSeat = this.mateOf(p.seat);
     const mate = this.getBySeat(mateSeat);
     if (!mate) return { ok: false, msg: '队友不在，立不了棍' };
-    if (this.stickRequest) return { ok: false, msg: '已经有一个申请在等回复' };
 
-    this.stickRequest = { seat: p.seat, name: p.name, mateSeat, at: Date.now() };
+    // 只看自己队：对方队的申请不影响你
+    const hasMine = this.stickRequests.some(r => r.seat === p.seat || r.mateSeat === p.seat);
+    if (hasMine) return { ok: false, msg: '你队已经有申请在等回复' };
+
+    this.stickRequests.push({ seat: p.seat, name: p.name, mateSeat, at: Date.now() });
     this.addLog(`${p.name} 想立棍，等 ${mate.name} 点头`);
     this.seq++;
     return { ok: true, requested: true };
@@ -432,8 +437,10 @@ class Room {
     if (!p) return { ok: false, msg: '玩家不存在' };
     if (this.phase !== 'DECLARE') return { ok: false, msg: '现在不是立棍时间' };
 
-    const req = this.stickRequest;
-    if (!req || req.mateSeat !== p.seat) return { ok: false, msg: '没有待处理的申请' };
+    const idx = this.stickRequests.findIndex(r => r.mateSeat === p.seat);
+    if (idx < 0) return { ok: false, msg: '没有待处理的申请' };
+    const req = this.stickRequests[idx];
+    this.stickRequests.splice(idx, 1);
 
     if (agree) {
       this.declare[req.seat] = 'STICK';
@@ -446,7 +453,6 @@ class Room {
       this.declare[p.seat] = 'PASS';
       this.addLog(`${p.name} 没同意，这把不立棍`);
     }
-    this.stickRequest = null;
     this.checkAllChosen();
     this.seq++;
     return { ok: true, agree };
@@ -454,7 +460,7 @@ class Room {
 
   checkAllChosen() {
     if (this.phase !== 'DECLARE') return;
-    if (this.stickRequest) return;
+    if (this.stickRequests.length) return;
     const allChosen = this.players.every(x => this.declare[x.seat] !== 'PENDING');
     if (allChosen) this.finishDeclare();
   }
@@ -462,7 +468,7 @@ class Room {
   finishDeclare() {
     if (this.phase !== 'DECLARE') return;
     if (this.declareTimer) { clearTimeout(this.declareTimer); this.declareTimer = null; }
-    this.stickRequest = null;
+    this.stickRequests = [];
 
     const stickers = this.stickSeats.slice();
 
@@ -1293,7 +1299,7 @@ class Room {
       lastReact: this.lastReact,
       lastWindFx: this.lastWindFx,
       cutSeat: this.phase === 'CUT' ? this.cutSeat : null,
-      stickRequest: this.stickRequest ? { seat: this.stickRequest.seat, name: this.stickRequest.name, mateSeat: this.stickRequest.mateSeat } : null,
+      stickRequests: this.stickRequests.map(r => ({ seat: r.seat, name: r.name, mateSeat: r.mateSeat })),
       trickHistory: this.trickHistory.slice(-10).map(h => ({ seat: h.seat, cards: h.cards, isCha: !!h.isCha })),
       players: this.players.map(p => ({
         seat: p.seat,
