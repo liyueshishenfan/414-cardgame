@@ -783,12 +783,13 @@ function renderDeclare() {
   const sr = (state.stickRequests || []).find(r => r.mateSeat === state.mySeat);
   if (sr && sr.mateSeat === state.mySeat) { panel.hidden = true; return; }
 
-  panel.hidden = false;
   const myChoice = state.declare ? state.declare[state.mySeat] : 'PENDING';
   const chosen = myChoice !== 'PENDING';
 
-  $('btnStick').hidden = chosen;
-  $('btnNoStick').hidden = chosen;
+  // 已经表过态：整个弹窗收起来
+  if (chosen) { panel.hidden = true; return; }
+
+  panel.hidden = false;
 
   const stickers = state.stickSeats || [];
   const names = stickers.map(s => {
@@ -826,8 +827,8 @@ function updateDeclareTimer() {
   }
 }
 
-$('btnStick').addEventListener('click', () => send('declare', { want: true }));
-$('btnNoStick').addEventListener('click', () => send('declare', { want: false }));
+$('btnStick').addEventListener('click', () => { $('declare').hidden = true; send('declare', { want: true }); toast('已申请立棍，等你队友点头', 2200); });
+$('btnNoStick').addEventListener('click', () => { $('declare').hidden = true; send('declare', { want: false }); });
 
 /* ---------------- 手牌交互 ---------------- */
 function canInteract() {
