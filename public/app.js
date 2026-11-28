@@ -299,7 +299,7 @@ function renderCore() {
   }
 
   // 队友立棍申请
-  const sr = state.stickRequest;
+  const sr = (state.stickRequests || []).find(r => r.mateSeat === state.mySeat);
   const needAnswer = sr && sr.mateSeat === state.mySeat;
   $('stickBox').hidden = !needAnswer;
   if (needAnswer) $('stickTitle').textContent = `${sr.name} 想立棍`;
@@ -780,7 +780,7 @@ function renderDeclare() {
   if (!state || state.phase !== 'DECLARE') { panel.hidden = true; declareAutoSent = false; return; }
 
   // 队友申请立棍、等我点头时，这个弹窗先躲开，别把同意按钮压住
-  const sr = state.stickRequest;
+  const sr = (state.stickRequests || []).find(r => r.mateSeat === state.mySeat);
   if (sr && sr.mateSeat === state.mySeat) { panel.hidden = true; return; }
 
   panel.hidden = false;
