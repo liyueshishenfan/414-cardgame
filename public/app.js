@@ -73,7 +73,14 @@ function connect() {
     }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (ev) => {
+    if (ev && ev.code === 4001) {
+      try { ws = null; } catch (e) {}
+      $('game').hidden = true;
+      $('login').hidden = false;
+      toast('房间已解散，全部退出', 3500);
+      return;
+    }
     if (!myId) return;
     reconnectCount++;
     if (reconnectCount > 4) {
