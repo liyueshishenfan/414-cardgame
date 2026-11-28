@@ -292,7 +292,7 @@ wss.on('connection', (ws) => {
           if (sock) {
             try {
               send(sock, 'dismissed', { by: dr.byName });
-              setTimeout(() => { try { sock.close(); } catch (e) {} }, 120);
+              setTimeout(() => { try { sock.close(4001, 'room dismissed'); } catch (e) {} }, 120);
             } catch (e) {}
             conns.delete(id);
           }
