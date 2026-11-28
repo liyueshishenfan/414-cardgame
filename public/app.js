@@ -7,6 +7,7 @@ let myName = '';
 let myRealName = '';
 let state = null;
 let selected = new Set();    // 选中的牌 id
+let declareAutoSent = false;
 let asMap = {};              // 配牌 id -> 变成的点数
 let pickerTarget = null;
 let handOrder = [];          // 本地手牌顺序
@@ -769,7 +770,11 @@ $('btnWindClose').addEventListener('click', () => { $('windPanel').hidden = true
 /* ---------------- 立棍声明 ---------------- */
 function renderDeclare() {
   const panel = $('declare');
-  if (!state || state.phase !== 'DECLARE') { panel.hidden = true; return; }
+  if (!state || state.phase !== 'DECLARE') { panel.hidden = true; declareAutoSent = false; return; }
+
+  // 队友申请立棍、等我点头时，这个弹窗先躲开，别把同意按钮压住
+  const sr = state.stickRequest;
+  if (sr && sr.mateSeat === state.mySeat) { panel.hidden = true; return; }
 
   panel.hidden = false;
   const myChoice = state.declare ? state.declare[state.mySeat] : 'PENDING';
@@ -803,6 +808,15 @@ function updateDeclareTimer() {
   const left = Math.max(0, Math.ceil((state.declareEndsAt - Date.now()) / 1000));
   $('declareTimer').textContent = left;
   $('declareTimer').style.color = left <= 10 ? '#f87171' : '#fbbf24';
+
+  // 倒计时归零还没选：自动放弃，别让全桌干等系统超时
+  if (left <= 0) {
+    const myChoice = state.declare ? state.declare[state.mySeat] : 'PENDING';
+    if (myChoice === 'PENDING' && !declareAutoSent) {
+      declareAutoSent = true;
+      send('declare', { want: false });
+    }
+  }
 }
 
 $('btnStick').addEventListener('click', () => send('declare', { want: true }));
